@@ -1,7 +1,7 @@
 from sqlalchemy import Column,Integer,String,ForeignKey,DateTime,Enum,Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from database import Base
+from app.database import Base
 import enum #It is used to determine some values ​​as constant.
 
 
@@ -17,7 +17,7 @@ class IssuePriority(str,enum.Enum):
     high="high"
 
 class Project(Base):
-    __tablename__="Projects"
+    __tablename__="projects"
 
     id = Column( Integer, primary_key=True,index=True )
     name=Column( String, nullable=False)
@@ -26,7 +26,7 @@ class Project(Base):
     issues=relationship("Issue", back_populates="project", cascade="all, delete")
 
 class Issue(Base):
-    __tablename__ = "Issues"
+    __tablename__ = "issues"
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
