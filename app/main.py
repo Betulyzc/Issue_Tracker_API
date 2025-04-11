@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, Form, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.database import *
 from typing import Union,List
 from app.models import  *
 from app.schemas import *
+from app.auth import *
 
 Base.metadata.create_all(bind=engine)
 application = FastAPI()
@@ -59,7 +60,7 @@ def update_projects(project_data:ProjectInput,project_id:int, db:Session=Depends
     return project
 
 @application.delete("/projects/{project_id}",response_model=ProjectOutput)
-def delete_project(project_id:int, db:Session=Depends(get_db)):
+def delete_project(project_id:int, db:Session=Depends(get_db),current_user: User = Depends(get_current_user)):
     project=db.query(Project).get(project_id)
     raise_Error(project_id,project)
     db.delete(project)
@@ -105,4 +106,75 @@ def delete_issue(issue_id:int, db:Session=Depends(get_db)):
     db.delete(issue)
     db.commit()
     return  issue 
+
+@application.post("/register")
+def register_user(user:UserCreate,db:Session=Depends(get_db)):
+    user_mail_forCheck = db.query(User).filter(User.email == user.email).first()
+    
+    if user_mail_forCheck:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    hashed_pw=get_password_hash(user.password)
+
+    db_user = User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_pw
+    )
+
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(data={
+        "sub":db_user.username,
+        "id":db_user.id,
+        "email":db_user.email
+    },expires_delta=access_token_expires)
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": db_user.id,
+            "username": db_user.username,
+            "email": db_user.email
+        }
+    }
+
+@application.post("/login")
+def login_user(
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    db_user = db.query(User).filter(User.username == username).first()
+
+    if not db_user or not verify_password(password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={
+            "sub": db_user.username,
+            "id": db_user.id,
+            "email": db_user.email
+        },
+        expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": db_user.id,
+            "username": db_user.username,
+            "email": db_user.email
+        }
+    }
+
+@application.get("/users",response_model=List[UserOutput])
+def get_users(db:Session=Depends(get_db)):
+    return db.query(User).all()
     
