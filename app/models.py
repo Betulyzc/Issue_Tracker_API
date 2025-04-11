@@ -4,6 +4,15 @@ from sqlalchemy.sql import func
 from app.database import Base
 import enum #It is used to determine some values ​​as constant.
 
+class User(Base):
+    __tablename__="users"
+
+    id=Column(Integer, primary_key=True)
+    username=Column(String,unique=True,nullable=False)
+    email=Column(String, unique=True,nullable=False)
+    hashed_password=Column(String, nullable=False)
+
+
 
 #The fixed values ​​(enum) that the status and priority fields can take are defined.
 class IssueStatus(str, enum.Enum):
