@@ -4,6 +4,24 @@ from pydantic import BaseModel
 from app.models import *
 
 #BaseModels
+class UserCreate(BaseModel):
+    username:str
+    email:str
+    password:str
+
+class UserLogin(BaseModel):
+    username:str
+    password:str
+
+class UserOutput(BaseModel):
+    id: int
+    username: str
+    email: str
+
+    class Config:
+        from_attributes = True
+    
+
 # Issue Models 
 class IssueInput(BaseModel):
     title: str
@@ -18,7 +36,7 @@ class IssueOutput(IssueInput):
     created_at: datetime 
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # Project Models
@@ -31,4 +49,4 @@ class ProjectOutput(ProjectInput):
     issues:List[IssueOutput]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
